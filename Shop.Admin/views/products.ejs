@@ -4,34 +4,23 @@
     <div class="products-search">
         <div>
             <label for="filter-input">Title:</label>
-            <input id="filter-input"
-                   type="text"
-                   name="title"
-                   value="<%= queryParams?.title || "" %>" />
+            <input id="filter-input" type="text" name="title" value="<%= queryParams?.title || "" %>" />
         </div>
 
         <div>
             <label for="filter-description">Description:</label>
-            <input id="filter-description"
-                   type="text"
-                   name="description"
-                   value="<%= queryParams?.description || "" %>" />
+            <input id="filter-description" type="text" name="description"
+                value="<%= queryParams?.description || "" %>" />
         </div>
 
         <div>
             <label for="filter-price-from">Price from:</label>
-            <input id="filter-price-from"
-                   type="text"
-                   name="priceFrom"
-                   value="<%= queryParams?.priceFrom || "" %>" />
+            <input id="filter-price-from" type="text" name="priceFrom" value="<%= queryParams?.priceFrom || "" %>" />
         </div>
 
         <div>
             <label for="filter-price-to">Price to:</label>
-            <input id="filter-price-to"
-                   type="text"
-                   name="priceTo"
-                   value="<%= queryParams?.priceTo || "" %>" />
+            <input id="filter-price-to" type="text" name="priceTo" value="<%= queryParams?.priceTo || "" %>" />
         </div>
     </div>
 
@@ -43,20 +32,22 @@
     <% items.forEach(function(product) { %>
         <div class="product-item">
             <div class="image">
-                <img src="<%= product.thumbnail?.url || "img/product-placeholder.png" %>"
-                     alt="<%= product.title %>">
+                <img src="<%= product.thumbnail?.url || " img/product-placeholder.png" %>"
+                alt="<%= product.title %>">
             </div>
             <div class="info">
-                <a class="title" href="<%= `${ product.id }` %>">
+                <a class="title" href="<%= `${product.id}` %>">
                     <%= product.title %>
                 </a>
                 <div>
-                    <span class="label">Images:</span> <%= product.images?.length || 0 %>
+                    <span class="label">Images:</span>
+                    <%= product.images?.length || 0 %>
                 </div>
                 <div>
-                    <span class="label">Price:</span> <%= product.price %>
+                    <span class="label">Price:</span>
+                    <%= product.price %>
                 </div>
             </div>
         </div>
-    <% }); %>
+        <% }); %>
 </div>

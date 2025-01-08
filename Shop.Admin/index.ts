@@ -1,37 +1,32 @@
-import express, { Express, NextFunction, Request, Response } from "express";
-import { productsRouter } from "./controllers/products.controller";
+import express, { Express } from "express";
+import { productsRouter } from "./controllers/products.controller" 
+import { authRouter } from "./controllers/auth.controller" 
 import layouts from "express-ejs-layouts";
 import bodyParser from "body-parser";
-import { authRouter, validateSession } from "./controllers/auth.controller";
 import session from "express-session";
 
+
 export default function (): Express {
-  const app = express();
+    const app = express();
 
-  app.use(session({
-    secret: process.env.SESSION_SECRET,
-    saveUninitialized: false,
-    resave: false
-  }));
+    app.use(session({
+        secret: "abcde",
+        saveUninitialized: false,
+        resave: false
+    }));
 
-  app.use(express.json());
-  app.use(bodyParser.urlencoded({ extended: false }));
+    app.use(express.json());
+    app.use(bodyParser.urlencoded({ extended: false })); //чтобы обрабатывать данные формы x-www-form-urlencoded
 
-  app.set("view engine", "ejs");
-  app.set("views", "Shop.Admin/views");
-  app.use(layouts);
+    app.set("view engine", "ejs");
+    app.set("views", "Shop.Admin/views");
 
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    res.locals.location = req.headers.host + req.originalUrl;
-    next();
-  });
+    app.use(layouts);
 
-  app.use(express.static(__dirname + "/public"));
+    app.use(express.static(__dirname + "/public"));
 
-  app.use(validateSession);
+    app.use("/auth", authRouter);
+    app.use("/", productsRouter);
 
-  app.use("/auth", authRouter);
-  app.use("/", productsRouter);
-
-  return app;
+    return app;
 }
