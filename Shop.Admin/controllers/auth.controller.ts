@@ -21,8 +21,8 @@ authRouter.post("/authenticate", async (
     try {
         const verified = await verifyRequisites(req.body);
 
-        console.log('req.body=', req.body);
-        console.log('verified=', verified);
+        // console.log('req.body=', req.body);
+        // console.log('verified=', verified);
 
         if (verified) {
             res.redirect(`/${process.env.ADMIN_PATH}`)
