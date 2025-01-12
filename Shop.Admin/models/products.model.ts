@@ -3,149 +3,153 @@ import { IProduct, IProductFilterPayload } from "@Shared/types";
 import { IProductEditData } from "../types";
 import { API_HOST } from "./const";
 
-
-const host = API_HOST;
-
 export async function getProducts(): Promise<IProduct[]> {
-    const { data } = await axios.get < IProduct[] > (`${host}/products`);
-    return data || [];
+  const { data } = await axios.get<IProduct[]>(`${API_HOST}/products`);
+  return data || [];
 }
 
 export async function searchProducts(
-    filter: IProductFilterPayload
+  filter: IProductFilterPayload
 ): Promise<IProduct[]> {
-    const { data } = await axios.get < IProduct[] > (
-        `${host}/products/search`,
-        { params: filter }
-    );
-    return data || [];
+  const { data } = await axios.get<IProduct[]>(
+    `${API_HOST}/products/search`,
+    { params: filter }
+  );
+  return data || [];
 }
 
 export async function getProduct(
-    id: string
+  id: string
 ): Promise<IProduct | null> {
-    try {
-        const { data } = await axios.get < IProduct > (
-            `${host}/products/${id}`
-        );
-        return data;
-    } catch (e) {
-        return null;
-    }
+  try {
+    const { data } = await axios.get<IProduct>(
+      `${API_HOST}/products/${id}`
+    );
+    return data;
+  } catch (e) {
+    return null;
+  }
 }
 
 export async function removeProduct(id: string): Promise<void> {
-    await axios.delete(`${host}/products/${id}`);
+  await axios.delete(`${API_HOST}/products/${id}`);
 }
 
-/**
- * с помощью регулярного выражения мы разбиваем строку на части по разрыву строки или запятой,
- * затем очищаеем каждое значение от пробелов,
- * а затем избвляемся от пустых строк, которые могли образоваться после split
- */
 function splitNewImages(str = ""): string[] {
-    return str
-      .split(/\r\n|,/g)
-      .map(url => url.trim())
-      .filter(url => url);
-  }
-  
-  function compileIdsToRemove(data: string | string[]): string[] {
-    if (typeof data === "string") return [data];
+  return str
+    .split(/\r\n|,/g)
+    .map(url => url.trim())
+    .filter(url => url);
+}
+
+function compileIdsToRemove(data: string | string[]): string[] {
+  if (typeof data === "string") return [data];
+  return data;
+}
+
+export async function createProduct(formData: IProductEditData): Promise<IProduct | null> {
+  try {
+    const payload: IProduct = {
+      id: "",
+      title: formData.title,
+      description: formData.description,
+      price: Number(formData.price)
+    }
+
+    const { data } = await axios.post<IProduct>(`${API_HOST}/products`, payload);
     return data;
+  } catch (e) {
+    return null;
   }
+}
 
 export async function updateProduct(
-    productId: string,
-    formData: IProductEditData
-  ): Promise<void> {
-    try {
-      const { data: currentProduct } = await axios.get<IProduct>(`${host}/products/${productId}`);
-  
-      if (formData.commentsToRemove) {
-        /**
-         * formData.commentsToRemove может содержать как строку с одним значением,
-         * так и массив значений, поэтому используется хелпер compileIdsToRemove,
-         * который в итоге выдаст массив строк
-         */
-        const commentsIdsToRemove = compileIdsToRemove(formData.commentsToRemove);
-  
-        /**
-         * создаем функцию, которая при вызове выдаст массив из вызовов обращений к API
-         */
-        const getDeleteCommentActions = () => commentsIdsToRemove.map(commentId => {
-          return axios.delete(`${host}/comments/${commentId}`);
-        });
-  
-        /**
-         * вызываем функцию с обращениями к API, все запросы запустятся одновременно
-         */
-        await Promise.all(getDeleteCommentActions());
-  
-        /**
-         * пояснение к Promise.all – это один из вариантов того,
-         * как можно удалять комментарии по одному
-         *
-         * Comments API не имеет метода удаления нескольких комментариев единовременно
-         *
-         * если вам такой способ неудобен, вы можете реализовать дополнительный
-         * метод в Comments API для удаления нескольких комментариев за один вызов
-         *
-         * такой метод можно реализовать по аналогии с POST /api/products/remove-images
-         */
-      }
-  
-      if (formData.imagesToRemove) {
-        /**
-         * используем хелпер compileIdsToRemove по аналогии с commentsToRemove
-         */
-        const imagesIdsToRemove = compileIdsToRemove(formData.imagesToRemove);
-        await axios.post(`${host}/products/remove-images`, imagesIdsToRemove);
-      }
-  
-      if (formData.newImages) {
-        /**
-         * превращаем строку с массив строк
-         */
-        const urls = splitNewImages(formData.newImages);
-  
-        /**
-         * согласно типу Request body ProductAddImagesPayload /api/add-images,
-         * нам нужно передать объект с полями productId и images,
-         * где images это массив объектов с полями url и main
-         *
-         * все новые картинки мы помечаем как картинки не для обложки,
-         * поэтому main: false
-         */
-        const images = urls.map(url => ({ url, main: false }));
-  
-        /**
-         * если у данного товара еще нет обложки,
-         * то первое изображение из массива images мы установим как обложку товара
-         */
-        if (!currentProduct.thumbnail) {
-          images[0].main = true;
-        }
-  
-        await axios.post(`${host}/products/add-images`, { productId, images });
-      }
-  
-      if (formData.mainImage && formData.mainImage !== currentProduct.thumbnail?.id) {
-        await axios.post(`${host}/products/update-thumbnail/${productId}`, {
-          newThumbnailId: formData.mainImage
-        });
-      }
-  
-      /**
-       * обновление полей title, description и price в текущем товаре;
-       * price из формы приходит в виде строки, поэтому нужно превратить его в число
-       */
-      await axios.patch(`${host}/products/${productId}`, {
-        title: formData.title,
-        description: formData.description,
-        price: Number(formData.price)
+  productId: string,
+  formData: IProductEditData
+): Promise<void> {
+  try {
+    const { data: currentProduct } = await axios.get<IProduct>(`${API_HOST}/products/${productId}`);
+
+    if (formData.commentsToRemove) {
+      const commentsIdsToRemove = compileIdsToRemove(formData.commentsToRemove);
+
+      const getDeleteCommentActions = () => commentsIdsToRemove.map(commentId => {
+        return axios.delete(`${API_HOST}/comments/${commentId}`);
       });
-    } catch (e) {
-      console.log(e);
+
+      await Promise.all(getDeleteCommentActions());
     }
+
+    if (formData.imagesToRemove) {
+      const imagesIdsToRemove = compileIdsToRemove(formData.imagesToRemove);
+      await axios.post(`${API_HOST}/products/remove-images`, imagesIdsToRemove);
+    }
+
+    if (formData.newImages) {
+      const urls = splitNewImages(formData.newImages);
+
+      const images = urls.map(url => ({ url, main: false }));
+
+      if (!currentProduct.thumbnail) {
+        images[0].main = true;
+      }
+
+      await axios.post(`${API_HOST}/products/add-images`, { productId, images });
+    }
+
+    if (formData.mainImage && formData.mainImage !== currentProduct.thumbnail?.id) {
+      await axios.post(`${API_HOST}/products/update-thumbnail/${productId}`, {
+        newThumbnailId: formData.mainImage
+      });
+    }
+
+    if (formData.similarToRemove) {
+      const ids = compileIdsToRemove(formData.similarToRemove);
+      await axios.post(`${API_HOST}/products/remove-similar`, ids);
+    }
+
+    if (formData.similarToAdd) {
+      const ids = compileIdsToRemove(formData.similarToAdd);
+      const pairs = ids.map(id => [productId, id]);
+      await axios.post(`${API_HOST}/products/add-similar`, pairs);
+    }
+
+    await axios.patch(`${API_HOST}/products/${productId}`, {
+      title: formData.title,
+      description: formData.description,
+      price: Number(formData.price)
+    });
+  } catch (e) {
+    console.log(e);
   }
+}
+
+export async function getSimilarProducts(
+  originProductId: string
+): Promise<IProduct[] | null> {
+  try {
+    const { data } = await axios.get<IProduct[]>(
+      `${API_HOST}/products/similar/${originProductId}`
+    );
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function getNotSimilarProducts(
+  originProductId: string,
+  similarProducts: IProduct[] = []
+): Promise<IProduct[] | []> {
+  try {
+    const similarIdsSet = new Set(similarProducts.map(({ id }) => id));
+
+    const { data = [] } = await axios.get<IProduct[]>(`${API_HOST}/products`);
+
+    return data.filter(product => {
+      return product.id !== originProductId && !similarIdsSet.has(product.id);
+    });
+  } catch (e) {
+    return null;
+  }
+}
